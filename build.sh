@@ -4,10 +4,10 @@
 #
 # Reproducible: CI rebuilds the module and fails when the committed one differs. The bytes
 # depend only on the sources, Cargo.lock and the toolchain: build in `nix develop` (rustc and
-# wasm-ld pinned by flake.lock) or commit the `pdk-manager-wasm` artifact of the CI run. Host
+# rust-lld pinned by flake.lock) or commit the `pdk-manager-wasm` artifact of the CI run. Host
 # paths are remapped out of the module (panic locations would otherwise name this checkout).
-# The nix rustc has no rust-lld: without one, the script links with wasm-ld (re-running itself
-# under `nix shell nixpkgs#lld` when none is on PATH).
+# A toolchain without rust-lld (nixpkgs' rustc) links with wasm-ld instead, re-running the
+# script under `nix shell nixpkgs#lld` when none is on PATH; the dev shell has rust-lld.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

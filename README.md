@@ -76,7 +76,7 @@ The plugin is a Rust crate built for `wasm32-unknown-unknown`. The Schemify crat
 pinned to one Schemify commit in `Cargo.toml`.
 
 ```sh
-nix develop                  # rustc 1.95 with the wasm32 std, wasm-ld
+nix develop                  # Rust 1.95.0 (rust-overlay) with the wasm32 std and rust-lld
 ./build.sh                   # -> pdk_manager.wasm (fails at 200 KB)
 cargo test                   # pure modules, then the built guest through the real plugin host
 cargo test -- --ignored      # network: real ciel, FreePDK45 and ASAP7 installs simulated in ngspice
