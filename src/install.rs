@@ -216,8 +216,8 @@ pub fn corners_lib(r: &Recipe, up: &str) -> String {
     t
 }
 
-const NMOS4: &str = include_str!("../../../devices/nmos4.shprim");
-const PMOS4: &str = include_str!("../../../devices/pmos4.shprim");
+const NMOS4: &str = include_str!("../devices/nmos4.shprim");
+const PMOS4: &str = include_str!("../devices/pmos4.shprim");
 /// The size label of the core MOS drawing, replaced for cells without `w`/`l`.
 const WL_LABEL: &str = "{eng(w)}/{eng(l)}";
 
@@ -575,13 +575,14 @@ mod tests {
         );
     }
 
-    /// The generated cells of the `tech:` inverter are the CLI's netlist fixtures
-    /// (`crates/cli/tests/tech.rs`): one source of truth for the golden netlists.
+    /// The generated cells of the `tech:` inverter equal the CLI's netlist fixtures
+    /// (Schemify's `crates/cli/tests/fixtures/tech/pdk`, copied to `tests/fixtures/schemify/`):
+    /// a re-bless here must be copied back there, or the golden netlists drift.
     #[test]
     fn generated_cells_are_canonical_core_style_symbols() {
         let fixtures = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../crates/cli/tests/fixtures/tech/pdk"
+            "/tests/fixtures/schemify/tech/pdk"
         );
         for (family, cells) in [
             ("freepdk45", ["nmos_vtl", "pmos_vtl"]),

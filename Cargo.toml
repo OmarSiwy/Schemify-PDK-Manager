@@ -1,10 +1,11 @@
 [package]
 name = "pdk-manager"
-description = "Per-project PDK installs (ciel, git, url or a local kit), switching technologies by rewriting the manifest (docs/spec/pdk.md)."
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-rust-version.workspace = true
+description = "Schemify plugin: per-project PDK installs (ciel, git, url or a local kit), switching technologies by rewriting the manifest (Schemify docs/spec/pdk.md)."
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.95"
+repository = "https://github.com/OmarSiwy/Schemify-PDK-Manager"
 publish = false
 
 [lib]
@@ -19,11 +20,30 @@ schemify-abi.workspace = true
 [dev-dependencies]
 # The oracle for the manifest rewrite (canonical text the format writer reproduces) and the
 # shipped maps. Not linked into the guest: it would take it past the size limit.
-schemify-format = { path = "../../crates/format" }
+schemify-format.workspace = true
 # Drives the built guest through the real host (capability checks included).
-schemify-plugin = { path = "../../crates/plugin" }
+schemify-plugin.workspace = true
 
 [lints.rust]
 # `deny`, not `forbid`: `guest::export!` allows `unsafe(no_mangle)` on its exports.
 unsafe_code = "deny"
 missing_docs = "warn"
+
+[workspace]
+resolver = "3"
+
+# The Schemify crates, pinned to one Schemify commit. Bump all three together; the nightly CI
+# job builds against Schemify `main` to catch drift early.
+[workspace.dependencies]
+schemify-abi = { git = "https://github.com/OmarSiwy/Schemify", rev = "df18b211f18d7263e59d579e13df96d265ea4012", features = ["guest"] }
+schemify-format = { git = "https://github.com/OmarSiwy/Schemify", rev = "df18b211f18d7263e59d579e13df96d265ea4012" }
+schemify-plugin = { git = "https://github.com/OmarSiwy/Schemify", rev = "df18b211f18d7263e59d579e13df96d265ea4012" }
+
+# Small module: size over speed, no unwinding (a panic is a trap the host reports).
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false

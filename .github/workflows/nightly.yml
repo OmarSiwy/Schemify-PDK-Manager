@@ -1,0 +1,28 @@
+# Nightly: build and test against Schemify `main` instead of the pinned rev, so a core change
+# that breaks this plugin shows up within a day. A red run means: bump `rev` in Cargo.toml (all
+# Schemify crates together), fix, commit the rebuilt module.
+name: nightly
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  schemify-main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - name: follow Schemify main
+        run: |
+          sed -i 's/rev = "[0-9a-f]\{40\}"/branch = "main"/' Cargo.toml
+          nix develop -c cargo update -p schemify-abi
+      - run: nix develop -c cargo clippy --all-targets -- -D warnings
+      # The rebuilt module may differ from the committed one here: not checked.
+      - run: nix develop -c ./build.sh
+      - run: nix develop -c cargo test --no-fail-fast

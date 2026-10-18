@@ -1,4 +1,4 @@
-//! The built guest (`plugins/pdk-manager/pdk_manager.wasm`, from `plugins/build.sh`) through the
+//! The built guest (`pdk_manager.wasm`, from `build.sh`) through the
 //! real host (`schemify_plugin`: grants and path checks included), with fake `ciel`,
 //! `schemify-interop`, `git`, `curl` and `tar` first on `PATH` (shell scripts that write a tiny tree and
 //! log their argv).
@@ -9,7 +9,7 @@
 //!
 //! Ignored, nightly-style, against the network: `real_ciel_installs_sky130` (real `ciel` and
 //! `schemify-interop` on `PATH`) and `real_kits_simulate_an_inverter` (FreePDK45 and ASAP7 installed
-//! for real, then the inverter's DC sweep in ngspice): `cargo test -p pdk-manager -- --ignored`.
+//! for real, then the inverter's DC sweep in ngspice): `cargo test -- --ignored`.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -277,7 +277,7 @@ const V2: &str = "2222222222222222222222222222222222222222";
 #[test]
 fn install_use_remove_prune() {
     let Some(mut w) = World::new("flow") else {
-        eprintln!("pdk_manager.wasm not built (plugins/build.sh); skipped");
+        eprintln!("pdk_manager.wasm not built (./build.sh); skipped");
         return;
     };
     w.env = vec![
@@ -506,7 +506,7 @@ fn git_url_and_local_kits() {
     assert_eq!(
         w.read(&format!("{d}/lib/asap7/nmos_rvt.shprim")).as_deref(),
         Some(include_str!(
-            "../../../crates/cli/tests/fixtures/tech/pdk/asap7/asap7/nmos_rvt.shprim"
+            "fixtures/schemify/tech/pdk/asap7/asap7/nmos_rvt.shprim"
         ))
     );
     assert_eq!(
@@ -620,7 +620,7 @@ fn git_url_and_local_kits() {
         w.read(&format!("{n}/lib/freepdk45/pmos_vtl.shprim"))
             .as_deref(),
         Some(include_str!(
-            "../../../crates/cli/tests/fixtures/tech/pdk/freepdk45/freepdk45/pmos_vtl.shprim"
+            "fixtures/schemify/tech/pdk/freepdk45/freepdk45/pmos_vtl.shprim"
         ))
     );
     w.cmd("pdk.use", "freepdk45 ncsu");
@@ -674,7 +674,7 @@ fn real_ciel_installs_sky130() {
     assert!(w.read("schemify.project").unwrap().contains("lib tech map"));
 }
 
-/// The VTC bench of the `tech:` inverter (`crates/cli/tests/fixtures/tech/inv.shcomp`): a DC
+/// The VTC bench of the `tech:` inverter (`tests/fixtures/schemify/tech/inv.shcomp`): a DC
 /// sweep of the input from 0 to `vdd` at the PDK's `tt` corner, through `PDK_MODELS`.
 fn vtc_bench(vdd: &str) -> String {
     format!(
@@ -687,7 +687,7 @@ fn vtc_bench(vdd: &str) -> String {
 /// `openvaf-r`), uses it, and runs the `tech:` inverter's DC sweep in ngspice. The VTC must
 /// switch: output within 10 % of the rails at both ends of the sweep and the crossing
 /// `vout = vin` within 0.3 vdd to 0.7 vdd. `SCHEMIFY_KITS=freepdk45` (or `asap7`) runs one.
-/// Run: `cargo test -p pdk-manager --test guest real_kits -- --ignored --nocapture`.
+/// Run: `cargo test --test guest real_kits -- --ignored --nocapture`.
 #[test]
 #[ignore = "network, git/curl/tar, ngspice and the schemify CLI: run with --ignored"]
 fn real_kits_simulate_an_inverter() {
@@ -732,7 +732,7 @@ fn real_kits_simulate_an_inverter() {
         );
         std::fs::write(
             dir.join("inv.shcomp"),
-            include_str!("../../../crates/cli/tests/fixtures/tech/inv.shcomp"),
+            include_str!("fixtures/schemify/tech/inv.shcomp"),
         )
         .unwrap();
         std::fs::write(dir.join("inv_tb.shbench"), vtc_bench(&vdd.to_string())).unwrap();
@@ -763,4 +763,20 @@ fn real_kits_simulate_an_inverter() {
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
+}
+
+/// The package manifest (`schemify.project`, read by `schemify pack`) is canonical, names the
+/// committed module, and requests exactly the grants these tests run the guest with.
+#[test]
+fn package_manifest_requests_the_tested_grants() {
+    let text = include_str!("../schemify.project");
+    let doc = schemify_format::parse(text.as_bytes()).expect("parses");
+    assert_eq!(schemify_format::write(&doc), text, "canonical");
+    let mut lines = text.lines().skip(2);
+    assert_eq!(
+        lines.next(),
+        Some("plugin pdk-manager path pdk_manager.wasm")
+    );
+    let grants: Vec<&str> = lines.filter_map(|l| l.strip_prefix("  grant ")).collect();
+    assert_eq!(grants, GRANTS);
 }
